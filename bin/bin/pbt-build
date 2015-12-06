@@ -1,0 +1,124 @@
+#!/usr/bin/perl
+
+$| = 1;
+
+use strict;
+use warnings;
+
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+use Cwd ('abs_path');
+use Getopt::Long;
+use Qbt::Pbt::Utils;
+
+my %COPY_SUB =
+(
+    'COPY' => sub
+    {
+        my $in = shift;
+        my $out = shift;
+
+        (system("cp", "-R", $in, $out) == 0) || die;
+    },
+    'SYMLINK' => sub
+    {
+        my $in = shift;
+        my $out = shift;
+
+        symlink $in, $out || die;
+    },
+);
+
+my %in_lib;
+my $out_lib;
+my %in_bin;
+my $out_bin;
+my $qbt = 0;
+my $qbt_dist = 0;
+my $copy = "COPY";
+
+sub add_dir
+{
+    my $h = shift;
+    my $d = shift;
+
+    $h->{abs_path($d)} = 1;
+}
+
+my @options =
+(
+    'in-lib=s' => sub { add_dir(\%in_lib, $_[1]); },
+    'out-lib=s' => \$out_lib,
+    'in-bin=s' => sub { add_dir(\%in_bin, $_[1]); },
+    'out-bin=s' => \$out_bin,
+    'qbt!' => \$qbt,
+    'qbt-dist!' => \$qbt_dist,
+    'copy=s' => \$copy,
+);
+
+GetOptions(@options) || die;
+
+my $copy_sub = $COPY_SUB{$copy} || die;
+
+my $add_package = sub
+{
+    my $package_dir = shift;
+
+    $package_dir || die;
+    -d $package_dir || die;
+    if(-d "$package_dir/lib")
+    {
+        add_dir(\%in_lib, "$package_dir/lib");
+    }
+    if(-d "$package_dir/bin")
+    {
+        add_dir(\%in_bin, "$package_dir/bin");
+    }
+};
+
+if($qbt_dist)
+{
+    my $iad = $ENV{'INPUT_ARTIFACTS_DIR'} || die;
+    my $strong = "$iad/strong";
+    -d $strong || die;
+
+    for my $package (@{Qbt::Pbt::Utils::slurp_dir($strong)})
+    {
+        $add_package->("$strong/$package");
+    }
+
+    $qbt = 1;
+}
+
+if($qbt)
+{
+    $add_package->($ENV{'PACKAGE_DIR'});
+    !$out_lib || die;
+    !$out_bin || die;
+
+    my $oad = $ENV{'OUTPUT_ARTIFACTS_DIR'} || die;
+    -d $oad || die;
+    $out_lib = "$oad/lib";
+    $out_bin = "$oad/bin";
+}
+
+$out_lib || die;
+!(-e $out_lib) || die;
+
+$out_bin || die;
+!(-e $out_bin) || die;
+
+Qbt::Pbt::Utils::unify(
+    'ins' => [sort(keys(%in_lib))],
+    'out' => $out_lib,
+    'copy' => $copy_sub,
+    'force' => 1,
+);
+
+Qbt::Pbt::Utils::unify(
+    'ins' => [sort(keys(%in_bin))],
+    'out' => $out_bin,
+    'copy' => $copy_sub,
+    'force' => 1,
+);
