@@ -18,6 +18,32 @@ sub slurp_dir
     return [@ret];
 }
 
+sub slurp_file
+{
+    my $file = shift;
+    open(my $fh, '<', $file) || die "Could not open $file: $!";
+    my @ret;
+    while(my $line = <$fh>)
+    {
+        chomp $line;
+        push @ret, $line;
+    }
+    close($fh) || die "Could not close $file: $!";
+    return [@ret];
+}
+
+sub unslurp_file
+{
+    my $file = shift;
+    my $lines = shift;
+    open(my $fh, '>', $file) || die "Could not open $file: $!";
+    for my $line (@$lines)
+    {
+        print $fh "$line\n";
+    }
+    close($fh) || die "Could not close $file: $!";
+}
+
 sub unify
 {
     my %args = @_;

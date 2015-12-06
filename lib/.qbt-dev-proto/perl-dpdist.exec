@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -e
+
+$INPUT_DEV_PROTO_DIR/extra/pbt.release/strong/pbt.release/bin/pbt-devproto

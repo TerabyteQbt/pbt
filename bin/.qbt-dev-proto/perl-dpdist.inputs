@@ -1,0 +1,4 @@
+return [
+    meta_tools.devproto.DevProtoInputs.PROTO,
+    meta_tools.devproto.DevProtoInputs.extra('pbt.release'),
+];

@@ -1,0 +1,75 @@
+#!/usr/bin/perl
+
+$| = 1;
+
+use strict;
+use warnings;
+
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+use Qbt::Pbt::Utils;
+
+my @TYPES = ('lib', 'bin');
+
+my %cmd = (map { $_ => ["$FindBin::Bin/pbt-unify"] } @TYPES);
+
+my $add_package = sub
+{
+    my $arg = shift;
+    my $dir = shift;
+    -d $dir || die;
+    for my $type (@TYPES)
+    {
+        my $subdir = "$dir/$type";
+        if(-d $subdir)
+        {
+            push @{$cmd{$type}}, ($arg, $subdir);
+        }
+    }
+};
+
+my $idpd = $ENV{'INPUT_DEV_PROTO_DIR'} || die;
+
+{
+    my $fixed = "$idpd/proto/fixed";
+    -d $fixed || die;
+    for my $package (@{Qbt::Pbt::Utils::slurp_dir($fixed)})
+    {
+        $add_package->('--copy', "$fixed/$package");
+    }
+}
+
+{
+    my $overridden = "$idpd/proto/overridden";
+    -d $overridden || die;
+    for my $package (@{Qbt::Pbt::Utils::slurp_dir($overridden)})
+    {
+        my $lines = Qbt::Pbt::Utils::slurp_file("$overridden/$package/package_dir");
+        @$lines == 1 || die;
+        $add_package->('--link', $lines->[0]);
+    }
+}
+
+my $package = $ENV{'PACKAGE_DIR'} || die;
+$add_package->('--link', $package);
+
+my $dist = "$package/dpdist";
+(system('rm', '-rf', '--', $dist) == 0) || die;
+mkdir $dist || die;
+for my $type (@TYPES)
+{
+    push @{$cmd{$type}}, ('--out', "$dist/$type");
+}
+
+for my $type (@TYPES)
+{
+    my $cmd = $cmd{$type};
+    (system(@$cmd) == 0) || die;
+}
+
+my $odpd = $ENV{'OUTPUT_DEV_PROTO_DIR'} || die;
+-d $odpd || die;
+my $output = "$odpd/package_dir";
+!(-e $output) || die;
+Qbt::Pbt::Utils::unslurp_file($output, [$package]);
