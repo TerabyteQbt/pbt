@@ -24,7 +24,6 @@ sub unify
     my $ins = delete $args{'ins'} || die;
     my $out = delete $args{'out'} || die;
     my $force = delete $args{'force'} || 0;
-    my $copy_sub = delete $args{'copy'} || die;
     !%args || die;
 
     if(!$force)
@@ -36,7 +35,8 @@ sub unify
 
         if(@$ins == 1)
         {
-            $copy_sub->($ins->[0], $out);
+            my ($dir, $copy_sub) = @{$ins->[0]};
+            $copy_sub->($dir, $out);
             return;
         }
     }
@@ -44,10 +44,11 @@ sub unify
     my %ent_ins;
     for my $in (@$ins)
     {
-        for my $ent (@{slurp_dir($in)})
+        my ($dir, $copy_sub) = @$in;
+        for my $ent (@{slurp_dir($dir)})
         {
-            my $in2 = "$in/$ent";
-            push @{$ent_ins{$ent} ||= []}, $in2;
+            my $dir2 = "$dir/$ent";
+            push @{$ent_ins{$ent} ||= []}, [$dir2, $copy_sub];
         }
     }
 
@@ -57,7 +58,6 @@ sub unify
         unify(
             'ins' => $ent_ins{$ent},
             'out' => "$out/$ent",
-            'copy' => $copy_sub,
         );
     }
 }

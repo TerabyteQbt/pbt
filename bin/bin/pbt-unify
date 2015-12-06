@@ -1,0 +1,57 @@
+#!/usr/bin/perl
+
+$| = 1;
+
+use strict;
+use warnings;
+
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+use Cwd ('abs_path');
+use Getopt::Long;
+use Qbt::Pbt::Utils;
+
+my $COPY_SUB = sub
+{
+    my $in = shift;
+    my $out = shift;
+
+    (system("cp", "-R", $in, $out) == 0) || die;
+};
+my $LINK_SUB = sub
+{
+    my $in = shift;
+    my $out = shift;
+
+    symlink $in, $out || die;
+};
+
+my @ins;
+my $out;
+
+sub add_dir
+{
+    my $dir = shift;
+    my $copy_sub = shift;
+
+    push @ins, [abs_path($dir), $copy_sub];
+}
+
+my @options =
+(
+    'copy=s' => sub { add_dir($_[1], $COPY_SUB); },
+    'link=s' => sub { add_dir($_[1], $LINK_SUB); },
+    'out=s' => \$out,
+);
+
+GetOptions(@options) || die;
+
+$out || die;
+!(-e $out) || die;
+
+Qbt::Pbt::Utils::unify(
+    'ins' => [@ins],
+    'out' => $out,
+    'force' => 1,
+);
