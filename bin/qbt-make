@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -e
+
+cp -R "$PACKAGE_DIR"/bin "$OUTPUT_ARTIFACTS_DIR"/bin
