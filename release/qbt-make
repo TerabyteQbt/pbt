@@ -2,5 +2,6 @@
 
 set -e
 
+cp LICENSE "$OUTPUT_ARTIFACTS_DIR"
 cp -R "$INPUT_ARTIFACTS_DIR"/strong/pbt.bin/bin "$OUTPUT_ARTIFACTS_DIR"/bin
 cp -R "$INPUT_ARTIFACTS_DIR"/strong/pbt.lib/lib "$OUTPUT_ARTIFACTS_DIR"/lib
